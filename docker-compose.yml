@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  blue:
+    build: .
+    container_name: app-blue
+    ports:
+      - "8001:5000"
+    environment:
+      - DEPLOYMENT_ENV=blue
+      - LD_SDK_KEY=${LD_SDK_KEY:-sdk-key-123}
+      - ENABLE_EXPERIMENTAL_ENDPOINT=false
+      - ENABLE_ENABLE_WRITE_OPERATIONS=true
+    volumes:
+      - ./database.db:/app/database.db
+
+  green:
+    build: .
+    container_name: app-green
+    ports:
+      - "8002:5000"
+    environment:
+      - DEPLOYMENT_ENV=green
+      - LD_SDK_KEY=${LD_SDK_KEY:-sdk-key-123}
+      - ENABLE_EXPERIMENTAL_ENDPOINT=true
+      - ENABLE_ENABLE_WRITE_OPERATIONS=true
+    volumes:
+      - ./database.db:/app/database.db
+
+  proxy:
+    image: nginx:alpine
+    container_name: app-proxy
+    ports:
+      - "8000:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - blue
+      - green

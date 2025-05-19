@@ -93,6 +93,7 @@ def experimental():
 @app.route('/health')
 def health():
     # Health check endpoint for deployment verification
+    #
     return jsonify({"status": "healthy", "environment": os.environ.get('DEPLOYMENT_ENV', 'unknown')})
 
 if __name__ == '__main__':
