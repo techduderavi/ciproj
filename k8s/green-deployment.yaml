@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-green
+  labels:
+    app: devops-demo
+    version: green
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: devops-demo
+      version: green
+  template:
+    metadata:
+      labels:
+        app: devops-demo
+        version: green
+    spec:
+      initContainers:
+      - name: init-db
+        image: devops-demo:latest
+        imagePullPolicy: Never
+        command: ["python", "init_db.py"]
+        volumeMounts:
+        - name: database-volume
+          mountPath: /app/data
+      containers:
+      - name: app
+        image: devops-demo:latest
+        imagePullPolicy: Never
+        command: ["python", "app.py"]
+        ports:
+        - containerPort: 5000
+        env:
+        - name: DEPLOYMENT_ENV
+          value: "green"
+        - name: LD_SDK_KEY
+          value: "sdk-key-123"
+        - name: ENABLE_EXPERIMENTAL_ENDPOINT
+          value: "true"
+        - name: ENABLE_ENABLE_WRITE_OPERATIONS
+          value: "true"
+        volumeMounts:
+        - name: database-volume
+          mountPath: /app/data
+      volumes:
+      - name: database-volume
+        emptyDir: {}

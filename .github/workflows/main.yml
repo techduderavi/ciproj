@@ -51,31 +51,36 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: docker-image
-      - name: Load Docker image
-        run: docker load < image.tar
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
       - name: Deploy to Blue Environment
         run: |
-          # In a real scenario, you would deploy to your server
-          # For this demo, we'll just simulate the deployment
+          # In a real scenario, you would:
+          # 1. Load the image to your container registry
+          # 2. Update the deployment image
+          # 3. Apply the changes to your Kubernetes cluster
           echo "Deploying to Blue environment..."
-          # Example: ssh user@your-server "docker-compose up -d blue"
+          # Example: kubectl set image deployment/app-blue app=devops-demo:${{ github.sha }}
 
   canary-deploy:
     needs: deploy-blue
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
       - name: Update traffic routing for canary deployment
         run: |
-          # In a real scenario, you would update your Nginx config
-          # For this demo, we'll just simulate the deployment
-          echo "Updating Nginx for canary deployment (10% traffic to Green)..."
-          # Example: ssh user@your-server "docker-compose up -d proxy"
+          # In a real scenario, you would:
+          # 1. Update the canary weight annotation
+          # 2. Monitor the deployment
+          echo "Updating Ingress for canary deployment (10% traffic to Green)..."
+          # Example: kubectl annotate ingress app-ingress-canary nginx.ingress.kubernetes.io/canary-weight=10 --overwrite
           
           # Wait for health checks
           echo "Waiting for health checks..."
           sleep 10
           
-          # If all looks good, proceed with full deployment
-          echo "Health checks passed, proceeding with full deployment..."
-          # Example: ssh user@your-server "sed -i 's/weight=9/weight=5/g' nginx.conf && docker-compose up -d proxy"
+          # If all looks good, proceed with more traffic
+          echo "Health checks passed, increasing traffic to 50%..."
+          # Example: kubectl annotate ingress app-ingress-canary nginx.ingress.kubernetes.io/canary-weight=50 --overwrite

@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: database-init
+data:
+  init-db.sh: |
+    #!/bin/sh
+    python /app/init_db.py
