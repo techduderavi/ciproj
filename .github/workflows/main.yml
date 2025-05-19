@@ -1,0 +1,81 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, feature/* ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest flake8
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+      - name: Lint with flake8
+        run: flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+      - name: Test with pytest
+        run: pytest
+
+  build:
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Build Docker image
+        run: docker build -t devops-demo:${{ github.sha }} .
+      - name: Save Docker image
+        run: docker save devops-demo:${{ github.sha }} > image.tar
+      - name: Upload Docker image as artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: docker-image
+          path: image.tar
+
+  deploy-blue:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Download Docker image
+        uses: actions/download-artifact@v3
+        with:
+          name: docker-image
+      - name: Load Docker image
+        run: docker load < image.tar
+      - name: Deploy to Blue Environment
+        run: |
+          # In a real scenario, you would deploy to your server
+          # For this demo, we'll just simulate the deployment
+          echo "Deploying to Blue environment..."
+          # Example: ssh user@your-server "docker-compose up -d blue"
+
+  canary-deploy:
+    needs: deploy-blue
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Update traffic routing for canary deployment
+        run: |
+          # In a real scenario, you would update your Nginx config
+          # For this demo, we'll just simulate the deployment
+          echo "Updating Nginx for canary deployment (10% traffic to Green)..."
+          # Example: ssh user@your-server "docker-compose up -d proxy"
+          
+          # Wait for health checks
+          echo "Waiting for health checks..."
+          sleep 10
+          
+          # If all looks good, proceed with full deployment
+          echo "Health checks passed, proceeding with full deployment..."
+          # Example: ssh user@your-server "sed -i 's/weight=9/weight=5/g' nginx.conf && docker-compose up -d proxy"

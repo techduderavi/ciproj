@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DevOps Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: {% if env == 'blue' %}#e6f7ff{% else %}#f9f9e6{% endif %};
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .env-badge {
+            display: inline-block;
+            padding: 5px 10px;
+            border-radius: 3px;
+            color: white;
+            background-color: {% if env == 'blue' %}#0066cc{% else %}#99cc00{% endif %};
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>DevOps Pipeline Demo <span class="env-badge">{{ env }} environment</span></h1>
+        
+        <div id="items-container">
+            <h2>Items</h2>
+            <ul id="items-list"></ul>
+            
+            <div id="add-item-form">
+                <input type="text" id="new-item" placeholder="New item">
+                <button onclick="addItem()">Add Item</button>
+            </div>
+        </div>
+        
+        <div id="experimental-container" style="display:none;">
+            <h2>Experimental Feature</h2>
+            <p id="experimental-content">Loading...</p>
+            <button onclick="checkExperimental()">Try Experimental Feature</button>
+        </div>
+    </div>
+
+    <script>
+        // Load items on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            fetchItems();
+            
+            // A/B testing with Optimizely
+            if (window.optimizely) {
+                var experimentId = 'experiment-button-color';
+                var variation = window.optimizely.get('variation', experimentId);
+                
+                if (variation === '0') {
+                    document.querySelector('button').style.backgroundColor = '#0066cc';
+                } else if (variation === '1') {
+                    document.querySelector('button').style.backgroundColor = '#cc0000';
+                }
+            }
+        });
+
+        function fetchItems() {
+            fetch('/api/items')
+                .then(response => response.json())
+                .then(items => {
+                    const list = document.getElementById('items-list');
+                    list.innerHTML = '';
+                    items.forEach(item => {
+                        const li = document.createElement('li');
+                        li.textContent = item.content;
+                        list.appendChild(li);
+                    });
+                });
+        }
+
+        function addItem() {
+            const content = document.getElementById('new-item').value;
+            if (!content) return;
+            
+            fetch('/api/items', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ content })
+            })
+            .then(response => {
+                if (response.ok) {
+                    document.getElementById('new-item').value = '';
+                    fetchItems();
+                } else if (response.status === 403) {
+                    alert('This feature is currently disabled');
+                }
+            });
+        }
+
+        function checkExperimental() {
+            fetch('/api/experimental')
+                .then(response => {
+                    if (response.ok) {
+                        return response.json();
+                    } else if (response.status === 403) {
+                        throw new Error('Feature not available');
+                    }
+                })
+                .then(data => {
+                    document.getElementById('experimental-content').textContent = data.message;
+                    document.getElementById('experimental-container').style.display = 'block';
+                })
+                .catch(error => {
+                    alert(error.message);
+                });
+        }
+    </script>
+</body>
+</html>
